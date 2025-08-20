@@ -3,7 +3,7 @@ import pandas as pd
 import httpx
 from io import StringIO  
 from bs4 import BeautifulSoup, Comment
-from models import Player
+from app.models import Player
 from nba_api.stats.static import players as nba_players
 from fastapi import HTTPException
 from typing import Optional

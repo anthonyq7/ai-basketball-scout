@@ -1,11 +1,11 @@
 from fastapi.responses import PlainTextResponse
 import pandas as pd
-from models import Player
-import scraper
+from app.models import Player
+from app import scraper
 from fastapi import FastAPI, HTTPException
-import database
+from app import database
 import json
-import gemini
+from app import gemini
 from typing import List
 from fastapi.concurrency import run_in_threadpool
 
@@ -144,11 +144,10 @@ async def get_player(player_name: str):
     return {"Error": "Player not found"} 
     """
 
-
 @app.get("/scrape/players")
 async def scrape_players():
     try:
-        await scraper.scrape_all_stats
+        await scraper.scrape_all_stats()
         return {"message": "data successfully scraped"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -178,6 +177,25 @@ async def get_player_report(player_name: str):
         year_map = rows_to_year_map(rows)
         report = gemini.generate_report({"player_name": player_name, "seasons": year_map})
         return PlainTextResponse(content=report)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
+
+@app.get("/players/names")
+async def get_player_names_all():
+    db = database.SessionLocal()
+    try:
+        rows = db.query(database.Player).all()
+        names = []
+        if not rows:
+            return {"Error": "No players found"}
+
+        for r in rows:
+            if r.player_name not in names:
+                names.append(r.player_name)
+
+        return names
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
