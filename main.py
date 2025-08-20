@@ -1,14 +1,17 @@
 from fastapi.responses import PlainTextResponse
 import pandas as pd
+from models import Player
 import scraper
 from fastapi import FastAPI, HTTPException
 import database
 import json
 import gemini
+from typing import List
+from fastapi.concurrency import run_in_threadpool
 
 app = FastAPI()
 database.Base.metadata.create_all(bind=database.engine)
-merged = scraper.process_and_merge_data()
+years = [2025, 2024, 2023, 2022, 2021, 2020]
 
 @app.get("/")
 async def root():
@@ -19,15 +22,20 @@ async def root():
 async def post_players():
     db = database.SessionLocal()
     try:
-        players = await scraper.create_player_models(merged)
+        players = []
+        for year in years:
+            year_players = await scraper.create_player_models(scraper.process_and_merge_data(float(year)))
+            players = players + year_players
+
         added_count = 0
         for player in players:
-            entry = db.query(database.Player).filter(database.Player.player_name == player.get("player_name") and database.Player.year == player.get("year")).first()
+            entry = db.query(database.Player).filter(database.Player.player_name == player.get("player_name"), database.Player.year == player.get("year")).first()
             if not entry:
                 new_entry = database.Player(
                     player_name=player.get("player_name"),
                     age=player.get("age"),
                     position=player.get("position"),
+                    headshot_url=player.get("headshot_url"),
                     games_played=player.get("games_played"),
                     minutes_played_per_game=player.get("minutes_played_per_game"),
                     field_goals_made_per_game=player.get("field_goals_made_per_game"),
@@ -93,16 +101,29 @@ async def post_players():
         db.close()
 
 
-@app.get("/players")
+@app.get("/players", response_model=List[Player])
 async def get_players():
+    db = database.SessionLocal()
     try:
-        players = await scraper.create_player_models(merged)
-        return {"players": players}
+        players = db.query(database.Player).all()
+        return players
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting players: {str(e)}")
+    finally:
+        db.close()
 
-@app.get("/player/{year}/{player_name}")
-async def get_player(year: int, player_name: str):
+@app.get("/player/{player_name}", response_model=List[Player])
+async def get_player(player_name: str):
+    db = database.SessionLocal()
+    try:
+        player = db.query(database.Player).filter(database.Player.player_name == player_name).all()
+        return player #FASTAPI + PYNDANTIC converts this SQLALchemy model to JSON
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        db.close()
+    """
+    OLD CODE:
     players = await scraper.create_player_models(merged)
     year = float(year)
     player_name.strip()
@@ -120,28 +141,42 @@ async def get_player(year: int, player_name: str):
             low = mid + 1
         else:
             high = mid - 1
-    return {"Error": "Player not found"}
+    return {"Error": "Player not found"} 
+    """
+
 
 @app.get("/scrape/players")
 async def scrape_players():
     try:
-        await scraper.scrape_all_stats()
+        await scraper.scrape_all_stats
         return {"message": "data successfully scraped"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=e)
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/generate_report/{year}/{player_name}")
-async def get_player_report(year: int, player_name: str):
-    year = float(year)
+# Helpers to structure JSON as {year: {stats}}
+def players_to_year_map(players: List[Player]) -> dict:
+    out = {}
+    for p in players:
+        d = p.model_dump(mode="json")
+        y = d.get("year")
+        key = str(int(y)) if isinstance(y, (int, float)) else str(y)
+        stats = {k: v for k, v in d.items() if k != "year"}
+        out[key] = stats
+    return out
+
+def rows_to_year_map(rows) -> dict:
+    pyd = [Player.model_validate(r, from_attributes=True) for r in rows]
+    return players_to_year_map(pyd)
+
+@app.get("/generate_report/{player_name}")
+async def get_player_report(player_name: str):
     db = database.SessionLocal()
     try:
-        query = db.query(database.Player).filter(database.Player.player_name == player_name and database.Player.year == year).first()
-        if not query:
+        rows = db.query(database.Player).filter(database.Player.player_name == player_name).all()
+        if not rows:
             return {"Error": "Player not found"}
-        
-        player_dict = vars(query)
-        player_dict.pop('_sa_instance_state', None)
-        report = gemini.generate_report(player_dict)
+        year_map = rows_to_year_map(rows)
+        report = gemini.generate_report({"player_name": player_name, "seasons": year_map})
         return PlainTextResponse(content=report)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -6,6 +6,7 @@ class Player(BaseModel):
     player_name: str
     age: float
     position: str
+    headshot_url: Optional[str] = None
     games_played: Optional[float] = None
     minutes_played_per_game: Optional[float] = None
     field_goals_made_per_game: Optional[float] = None
@@ -69,3 +70,7 @@ class Player(BaseModel):
     # Corner three statistics
     corner_three_attempt_percentage: Optional[float] = None
     corner_three_made_percentage: Optional[float] = None
+
+    class Config:
+        from_attributes = True #Lets Pyndantic accept SQLAlchemy models
+        #SQLAlchemy models cannot be serialized into JSON

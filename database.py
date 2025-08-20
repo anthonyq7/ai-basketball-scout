@@ -15,10 +15,11 @@ class Player(Base):
     __tablename__ = 'players'
     
     id = Column(Integer, primary_key=True, index=True, nullable=False)
-    year = Column(Float, nullable=True)
+    year = Column(Float, nullable=False)
     player_name = Column(String, nullable=False)
     age = Column(Float, nullable=False)
     position = Column(String, nullable=False)
+    headshot_url = Column(String)
     games_played = Column(Float)
     minutes_played_per_game = Column(Float)
     field_goals_made_per_game = Column(Float)
