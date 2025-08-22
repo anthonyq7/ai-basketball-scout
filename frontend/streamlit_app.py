@@ -84,7 +84,7 @@ st.markdown("""
     
     /* Remove the fixed button width and let it be responsive */
     .stButton > button {
-        background-color: #1f77b4;
+        background-color: #ff7f0e;
         color: white;
         border: none;
         padding: 15px 30px;
@@ -95,7 +95,7 @@ st.markdown("""
     }
     
     .stButton > button:hover {
-        background-color: #ff7f0e;
+        background-color: #e65c00;
         transform: translateY(-2px);
         transition: all 0.3s ease;
     }
@@ -126,7 +126,42 @@ st.markdown("""
         margin-left: calc(-50vw + 60px);
         text-align: left;
         box-sizing: border-box;
-        line-height: 1.6;  
+        line-height: 1.6;
+    }
+    
+    .scout-report h2 {
+        color: #ff7f0e;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 30px 0 15px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #ff7f0e;
+    }
+    
+    .scout-report h2:first-child {
+        margin-top: 0;
+    }
+    
+    .scout-report p {
+        margin: 15px 0;
+        text-align: justify;
+    }
+    
+    /* Style for plain text section headers */
+    .scout-report {
+        color: white;
+        font-size: 16px;
+        line-height: 1.6;
+    }
+    
+    /* Style section headers with the section-header class */
+    .scout-report .section-header {
+        color: #ff7f0e !important;
+        font-size: 24px !important;
+        font-weight: bold !important;
+        margin: 30px 0 15px 0 !important;
+        padding-bottom: 10px !important;
+        border-bottom: 2px solid #ff7f0e !important;
     }
     
     .scout-report-title {
@@ -278,7 +313,6 @@ def create_combined_player_graph(player_name, birth_year):
         years, ppg, apg, rpg, spg, bpg = zip(*sorted(zip(years, ppg, apg, rpg, spg, bpg)))
         plt.style.use('dark_background')
 
-        # Create one large combined figure
         fig, ax = plt.subplots(figsize=(36, 22))
         fig.patch.set_facecolor('#2b2b2b')
         ax.set_facecolor('#2b2b2b')
@@ -341,7 +375,6 @@ def create_combined_player_graph(player_name, birth_year):
                        xytext=(0,35), ha='center', fontsize=20, color='white', 
                        fontweight='bold', bbox=dict(boxstyle="round,pad=0.6", facecolor='#9467bd', alpha=0.95))
         
-        # Customize legend - positioned for better visibility with 5 stats and larger text
         legend = ax.legend(loc='upper left', fontsize=28, frameon=True, 
                           framealpha=0.95, facecolor='#404040', edgecolor='white', 
                           bbox_to_anchor=(0.02, 0.98), markerscale=1.5)
@@ -350,7 +383,9 @@ def create_combined_player_graph(player_name, birth_year):
         # Set y-axis to start from 0 for better comparison
         ax.set_ylim(bottom=0)
         
-        # Add more padding around the plot for better spacing
+        max_value = max(max(ppg), max(apg), max(rpg), max(spg), max(bpg))
+        ax.set_ylim(top=max_value * 1.40)  # Add 40% padding above the highest point
+        
         plt.tight_layout(pad=6.0)
         
         return fig
@@ -408,12 +443,8 @@ def main():
                         )
                         if fig:
                             st.markdown('<h3 style="text-align: center; margin: 30px 0;">Player Performance Statistics</h3>', unsafe_allow_html=True)
-                            
-                            # Display the chart with full container width and proper spacing
                             st.pyplot(fig, use_container_width=True, clear_figure=False)
                             plt.close(fig)
-                            
-                            # Add some spacing after the graphs
                             st.markdown("<br><br>", unsafe_allow_html=True)
                         
                      
@@ -423,13 +454,20 @@ def main():
                         )
                         
     
-                        section_headers = ["Strengths", "Weaknesses", "Areas for Improvement", "Summary"]
-
-                        report = re.sub(r'(?im)^Overview\s*\n', 'Overview\n\n', report)
-
-                        for h in section_headers:
-                            report = re.sub(rf'(?im)\n\s*{h}\s*\n', f'\n\n{h}\n', report)
-
+                        section_headers = ["Overview", "Strengths", "Weaknesses", "Playstyle and Tendencies", "Scheme Fit"]
+                        report = re.sub(r'(?im)^\s*##\s*Overview\s*\n', '<div class="section-header">Overview</div>\n\n', report)
+                        report = re.sub(r'(?im)^\s*Overview\s*\n', '<div class="section-header">Overview</div>\n\n', report)
+                        
+                        for header in section_headers:
+                            # Find and replace each section header with consistent formatting and CSS class
+                            pattern = rf'(?im)\n\s*{re.escape(header)}\s*\n'
+                            replacement = f'\n\n<div class="section-header">{header}</div>\n\n'
+                            report = re.sub(pattern, replacement, report)
+                        
+                        report = re.sub(r'\n{3,}', '\n\n', report)  # Remove excessive line breaks
+                        report = re.sub(r' +', ' ', report)  # Remove extra spaces
+                        report = report.strip()  # Remove leading/trailing whitespace
+                        
                         st.markdown('<div class="scout-report-title">Scout Report</div>', unsafe_allow_html=True)
                         if report:
                             st.markdown(f'<div class="scout-report">{report}</div>', unsafe_allow_html=True)
