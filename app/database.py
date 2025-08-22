@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine, Column, String, Float, Integer
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 from dotenv import load_dotenv
 import os
@@ -18,6 +17,7 @@ class Player(Base):
     year = Column(Float, nullable=False)
     player_name = Column(String, nullable=False)
     age = Column(Float, nullable=False)
+    birth_year = Column(Float, nullable=False)
     position = Column(String, nullable=False)
     headshot_url = Column(String)
     games_played = Column(Float)

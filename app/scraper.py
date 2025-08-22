@@ -213,9 +213,9 @@ def process_and_merge_data(year: int):
 
     def keep_tot_or_first(df):
         def pick_group(g):
-            has_multi = g["team"].isin(["2TM", "3TM"]).any()
+            has_multi = g["team"].isin(["2TM", "3TM", "4TM", "5TM", "6TM"]).any()
             if has_multi:
-                return g[g["team"].isin(["2TM", "3TM"])].head(1)
+                return g[g["team"].isin(["2TM", "3TM", "4TM", "5TM", "6TM"])].head(1)
             return g.head(1)
 
         out = (
@@ -262,6 +262,7 @@ async def create_player_models(merged: pd.DataFrame):
         player_dict['year'] = float(row['year'])
         hs_url = get_player_headshot(player_dict.get("player_name"))
         player_dict["headshot_url"] = hs_url
+        player_dict["birth_year"] = player_dict.get("year") - player_dict.get("age") - 1
         
         # Handle NaN values by converting them to None (null)
         for key, value in player_dict.items():
@@ -291,7 +292,7 @@ def get_player_headshot(player_name: str) -> Optional[str]:
         return None
 
 
-def nba_cdn_headshot(nba_player_id: int, size="260x190") -> str:
+def nba_cdn_headshot(nba_player_id: int, size="1040x760") -> str:
     return f"https://ak-static.cms.nba.com/wp-content/uploads/headshots/nba/latest/{size}/{nba_player_id}.png"
 
 

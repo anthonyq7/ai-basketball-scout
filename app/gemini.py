@@ -17,7 +17,7 @@ def generate_report(player_data: dict):
         "Scheme Fit\n"
         "Guidelines:\n"
         "Base every statement strictly on the supplied statistics; do not invent or infer information without statistical support.\n"
-        "Keep formatting simple (no bullets, asterisks, or special characters).\n"
+        "Keep formatting simple (no bullets, asterisks, or special characters), just text and line breaks.\n"
         "Be accurate, formal, and consistent in presentation.\n"
         f"{player_data}"
     )

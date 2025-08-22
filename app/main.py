@@ -4,13 +4,17 @@ from app.models import Player
 from app import scraper
 from fastapi import FastAPI, HTTPException
 from app import database
-import json
 from app import gemini
 from typing import List
-from fastapi.concurrency import run_in_threadpool
+from dotenv import load_dotenv
+import os
+import redis
+
+load_dotenv()
 
 app = FastAPI()
 database.Base.metadata.create_all(bind=database.engine)
+redis_client = redis.from_url(os.getenv("REDIS_URL"))
 years = [2025, 2024, 2023, 2022, 2021, 2020]
 
 @app.get("/")
@@ -29,11 +33,12 @@ async def post_players():
 
         added_count = 0
         for player in players:
-            entry = db.query(database.Player).filter(database.Player.player_name == player.get("player_name"), database.Player.year == player.get("year")).first()
+            entry = db.query(database.Player).filter(database.Player.player_name == player.get("player_name"), database.Player.year == player.get("year"), database.Player.birth_year == player.get("birth_year")).first()
             if not entry:
                 new_entry = database.Player(
                     player_name=player.get("player_name"),
                     age=player.get("age"),
+                    birth_year=player.get("birth_year"),
                     position=player.get("position"),
                     headshot_url=player.get("headshot_url"),
                     games_played=player.get("games_played"),
@@ -113,10 +118,10 @@ async def get_players():
         db.close()
 
 @app.get("/player/{player_name}", response_model=List[Player])
-async def get_player(player_name: str):
+async def get_player(player_name: str, birth_year: int):
     db = database.SessionLocal()
     try:
-        player = db.query(database.Player).filter(database.Player.player_name == player_name).all()
+        player = db.query(database.Player).filter(database.Player.player_name == player_name, database.Player.birth_year == birth_year).all()
         return player #FASTAPI + PYNDANTIC converts this SQLALchemy model to JSON
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -167,15 +172,23 @@ def rows_to_year_map(rows) -> dict:
     pyd = [Player.model_validate(r, from_attributes=True) for r in rows]
     return players_to_year_map(pyd)
 
-@app.get("/generate_report/{player_name}")
-async def get_player_report(player_name: str):
+@app.get("/generate_report/{player_name}/{birth_year}")
+async def get_player_report(player_name: str, birth_year: int):
+    cache_key=f"player:{player_name}:birth-year:{birth_year}"
+    cached_data = redis_client.get(cache_key)
+
+    if cached_data:
+        data = cached_data.decode('utf-8')
+        return PlainTextResponse(content=data)
+
     db = database.SessionLocal()
     try:
-        rows = db.query(database.Player).filter(database.Player.player_name == player_name).all()
+        rows = db.query(database.Player).filter(database.Player.player_name == player_name, database.Player.birth_year == birth_year).all()
         if not rows:
             return {"Error": "Player not found"}
         year_map = rows_to_year_map(rows)
         report = gemini.generate_report({"player_name": player_name, "seasons": year_map})
+        redis_client.setex(cache_key, 3600, report)
         return PlainTextResponse(content=report)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -187,28 +200,37 @@ async def get_player_names_all():
     db = database.SessionLocal()
     try:
         rows = db.query(database.Player).all()
-        names = []
+        unique_players = []
         if not rows:
             return {"Error": "No players found"}
 
         for r in rows:
-            if r.player_name not in names:
-                names.append(r.player_name)
-
-        return names
+            player_exists = any(
+                existing["player_name"] == r.player_name and existing["birth_year"] == r.birth_year for existing in unique_players
+            )
+            
+            if not player_exists:
+                unique_players.append({
+                    "player_name": r.player_name,
+                    "birth_year": r.birth_year
+                })
+        #unique_names = [player.get("player_name") for player in unique_players]
+        return unique_players
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
 
-        
-
-
-
-
-
-
-    
-    
-
-
+@app.get("/player-headshot/{player_name}/{birth_year}")
+async def get_player_headshot(player_name: str, birth_year: int):
+    db = database.SessionLocal()
+    try:
+        query = db.query(database.Player).filter(database.Player.player_name == player_name, database.Player.birth_year == birth_year).first()
+        if not query:
+            return {"Error": "Player not found"}
+        headshot_url = query.headshot_url
+        return {"headshot_url": headshot_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()

@@ -5,6 +5,7 @@ class Player(BaseModel):
     year: float
     player_name: str
     age: float
+    birth_year: float
     position: str
     headshot_url: Optional[str] = None
     games_played: Optional[float] = None
