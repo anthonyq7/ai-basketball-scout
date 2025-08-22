@@ -86,6 +86,3 @@ Notes
 License
 -------
 See `LICENSE`.
-
-# ai-basketball-scout
-A Basketball scouting report tool that uses AI
