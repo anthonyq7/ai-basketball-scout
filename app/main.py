@@ -2,17 +2,38 @@ from fastapi.responses import PlainTextResponse
 import pandas as pd
 from app.models import Player
 from app import scraper
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from app import database
 from app import gemini
 from typing import List
 from dotenv import load_dotenv
 import os
 import redis
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        os.getenv("FRONTEND_URL", "http://localhost:8501"),  
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"], 
+    allow_headers=[
+        "Accept",                    
+        "Content-Type",             
+        "Authorization",             
+        "X-Requested-With",          
+        "X-CSRF-Token",             
+        "Cache-Control",             
+    ],
+    max_age=3600  
+)
+
+
 database.Base.metadata.create_all(bind=database.engine)
 redis_client = redis.from_url(os.getenv("REDIS_URL"))
 years = [2025, 2024, 2023, 2022, 2021, 2020]
@@ -239,3 +260,5 @@ async def get_player_headshot(player_name: str, birth_year: int):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
+
+
