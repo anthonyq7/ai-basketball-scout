@@ -21,7 +21,10 @@ years = [2025, 2024, 2023, 2022, 2021, 2020]
 async def root():
     return {"message": "AI Basketball Scout"}
 
-   
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.post("/players")
 async def post_players():
     db = database.SessionLocal()
@@ -160,16 +163,18 @@ async def scrape_players():
 # Helpers to structure JSON as {year: {stats}}
 def players_to_year_map(players: List[Player]) -> dict:
     out = {}
-    for p in players:
-        d = p.model_dump(mode="json")
+    for p in players: #Iterates season by season
+        d = p.model_dump(mode="json") #Converts a Player object to dict
         y = d.get("year")
-        key = str(int(y)) if isinstance(y, (int, float)) else str(y)
-        stats = {k: v for k, v in d.items() if k != "year"}
-        out[key] = stats
-    return out
+        key = str(int(y)) if isinstance(y, (int, float)) else str(y) #Makes the "year" key stored as a string
+        stats = {k: v for k, v in d.items() if k != "year"} #Copy everything except year into a dictionary
+        out[key] = stats #Using the year as a key, puts all of stats as a value
+    return out 
 
 def rows_to_year_map(rows) -> dict:
-    pyd = [Player.model_validate(r, from_attributes=True) for r in rows]
+    pyd = [Player.model_validate(r, from_attributes=True) for r in rows] #Brackets create a list, converts each row into a validated Player object
+    #from_attributes tells Pydantic to look at attributes from the SQLAlchemy row, r.
+    #Normally, Pyndantic expects a dict 
     return players_to_year_map(pyd)
 
 @app.get("/generate_report/{player_name}/{birth_year}")
@@ -178,7 +183,7 @@ async def get_player_report(player_name: str, birth_year: int):
     cached_data = redis_client.get(cache_key)
 
     if cached_data:
-        data = cached_data.decode('utf-8')
+        data = cached_data.decode('utf-8') #converts from bytes to string
         return PlainTextResponse(content=data)
 
     db = database.SessionLocal()
@@ -204,17 +209,17 @@ async def get_player_names_all():
         if not rows:
             return {"Error": "No players found"}
 
-        for r in rows:
+        for r in rows: #Loops through all players
             player_exists = any(
                 existing["player_name"] == r.player_name and existing["birth_year"] == r.birth_year for existing in unique_players
-            )
+            ) #Checks to see if ANY are in unique_players
             
             if not player_exists:
-                unique_players.append({
+                unique_players.append({ #Appends to list if not exists
                     "player_name": r.player_name,
                     "birth_year": r.birth_year
                 })
-        #unique_names = [player.get("player_name") for player in unique_players]
+        #unique_names = [player.get("player_name") for player in unique_players] >>> This gets only names
         return unique_players
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -229,7 +234,7 @@ async def get_player_headshot(player_name: str, birth_year: int):
         if not query:
             return {"Error": "Player not found"}
         headshot_url = query.headshot_url
-        return {"headshot_url": headshot_url}
+        return {"headshot_url": headshot_url} #returns a JSON object with URL
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:

@@ -214,16 +214,27 @@ def process_and_merge_data(year: int):
     def keep_tot_or_first(df):
         def pick_group(g):
             has_multi = g["team"].isin(["2TM", "3TM", "4TM", "5TM", "6TM"]).any()
+            #Checks to see if any row in the group contains one of these markers in team column
+            #Returns a True/False series, .any() collapses it into a single True/False
             if has_multi:
                 return g[g["team"].isin(["2TM", "3TM", "4TM", "5TM", "6TM"])].head(1)
-            return g.head(1)
+                #Filters g down to the row that only that matches 2TM or 3TM
+                #Takes only the top row, which is the combined stats
 
+            return g.head(1) #returns the top (no multi-team marker) if has_multi is False
         out = (
-            df.sort_values(["player_name", "age", "team"])
-              .groupby("player_name", as_index=False, group_keys=False)
-              .apply(pick_group)
+            df.sort_values(["player_name", "age", "team"]) #sorts each row in df by these three, ensures a consistent "top card"
+              .groupby("player_name", as_index=False, group_keys=False) 
+              #first arg: Break df down into groups by player_name, attach group label (player's name) as index (so names become index, not integers like 0,1, etc)
+              #as_index=False: keep player_name as a normal column instead of the index (Group labels stay as a column, not index)
+              #group_keys=False: prevents Pandas from reattaching the group label when combining the results (However, indexes might be screwed up: Luka's index might be 3 but the player after him is now 6 since his Mavs and Laker stats were 4 and 5 )
+              .apply(pick_group) 
+              #Runs pick_group(g) for each group (player). This collapses multiple rows into one.
               .reset_index(drop=True)
+              #After .apply, the index can get messy. This resets to a simple 0..N-1 index.
+              #drop=True means “don’t keep the old index as a column”.
         )
+        
         return out
 
     per_game_sel = keep_tot_or_first(per_game_sel)
@@ -238,27 +249,33 @@ def process_and_merge_data(year: int):
     merged = merged.merge(advanced_sel, on=["player_name", "age"], how="inner", validate="one_to_one")
     merged = merged.merge(shooting_sel, on=["player_name", "age"], how="inner", validate="one_to_one")
 
-    merged["year"] = float(year)
-    merged['age'] = pd.to_numeric(merged['age'], errors='coerce')
+    merged["year"] = float(year) #Overwrites a column 'year', setting each to float(year)
+    merged['age'] = pd.to_numeric(merged['age'], errors='coerce') #errors='coerce' means to convert failures to NaN
     merged = merged[merged['player_name'].ne('League Average')]
+    #merged[...] filters based on where the condition is true
+    #.ne means not equal
     merged = merged.dropna(subset=['player_name', 'age', 'position'])
+    #drops rows where at least one of these 3 are missing or NaN
     return merged
 
-
+#Old code, new code queries from DB
 def get_player_data(player_name: str, merged: pd.DataFrame) -> dict:
     mask = merged["player_name"].str.casefold().eq(player_name.casefold())
-    row = merged.loc[mask].head(1)
+    row = merged.loc[mask].head(1) 
+    #df.loc[index] allows for returning specified rows (more 2+ rows, [start, end] for index)
     if row.empty:
         raise ValueError("Player/season not found")
 
     return row.iloc[0].to_dict()
+    #.iloc uses integer positions only, unlike .loc which uses can use labels too
+    #df.set_index() to specify which column will be used as index
 
 
 async def create_player_models(merged: pd.DataFrame):
     player_models = []
     
-    for index, row in merged.iterrows():
-        player_dict = row.to_dict()
+    for index, row in merged.iterrows(): #.iterrows() loops row by row
+        player_dict = row.to_dict() #turns into a dict
         player_dict['year'] = float(row['year'])
         hs_url = get_player_headshot(player_dict.get("player_name"))
         player_dict["headshot_url"] = hs_url
@@ -266,13 +283,13 @@ async def create_player_models(merged: pd.DataFrame):
         
         # Handle NaN values by converting them to None (null)
         for key, value in player_dict.items():
-            if pd.isna(value):
+            if pd.isna(value): #is N/A
                 player_dict[key] = None
         
         
         try:
-            player_model = Player(**player_dict)
-            player_models.append(player_model.model_dump())
+            player_model = Player(**player_dict) #unpacks dict into keyword args, feeds into Player model for validation
+            player_models.append(player_model.model_dump()) #converts Player model to dict
         except Exception as e:
             print(f"Error creating model for {player_dict.get('player_name', 'Unknown')}: {e}")
     
