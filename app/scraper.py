@@ -11,8 +11,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-DATA_DIR = Path(os.getenv("DATA_DIR", "/var/data"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+#DATA_DIR = Path(os.getenv("DATA_DIR", "/var/data"))
+#DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_bref_stats_v1(url, csv_name): #Legacy code right here, for learning and review purposes
