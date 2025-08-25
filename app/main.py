@@ -1,10 +1,10 @@
 from fastapi.responses import PlainTextResponse
 import pandas as pd
-from app.models import Player
-from app import scraper
+from models import Player
+import scraper
 from fastapi import FastAPI, HTTPException, status
-from app import database
-from app import gemini
+import database
+import gemini
 from typing import List
 from dotenv import load_dotenv
 import os
