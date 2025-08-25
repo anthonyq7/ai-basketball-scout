@@ -36,8 +36,9 @@ def get_bref_stats(url, csv_name): #This version accounts for tables hidden insi
         return
     
     df = pd.read_html(StringIO(html_content))[0]
-    out = DATA_DIR / f"{csv_name}.csv"
-    df.to_csv(out, index=False)
+    #out = DATA_DIR / f"{csv_name}.csv"
+    #df.to_csv(out, index=False)
+    df.to_csv(f"data/{csv_name}.csv", index=False)
 
 
 async def scrape_all_stats():
