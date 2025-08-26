@@ -1,23 +1,28 @@
 from fastapi.responses import PlainTextResponse
 import pandas as pd
-from models import Player
-import scraper
+from app.models import Player
+from app import scraper
 from fastapi import FastAPI, HTTPException, status
-import database
-import gemini
+from app import database
+from app import gemini
 from typing import List
 from dotenv import load_dotenv
 import os
 import redis
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
 load_dotenv()
 
-app = FastAPI(
-    docs_url=None,
-    redoc_url=None,
-    openapi_url=None
-)
+app = FastAPI()
+
+# Ensure data directory exists for file operations
+@app.on_event("startup")
+async def startup_event():
+    """Ensure data directory exists when app starts"""
+    data_dir = Path("data")
+    data_dir.mkdir(exist_ok=True)
+    print(f"Data directory ensured: {data_dir.absolute()}")
 
 app.add_middleware(
     CORSMiddleware,

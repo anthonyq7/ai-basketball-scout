@@ -11,8 +11,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-DATA_DIR = Path(os.getenv("DATA_DIR", "/var/data"))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
 
 
 def get_bref_stats_v1(url, csv_name): #Legacy code right here, for learning and review purposes
@@ -32,10 +32,12 @@ def get_bref_stats(url, csv_name): #This version accounts for tables hidden insi
     comment = soup.find(string=lambda text: isinstance(text, Comment) and "<table" in text)
     if comment:
         df = pd.read_html(str(BeautifulSoup(comment, "lxml")))[0]
-        df.to_csv(f"data/{csv_name}.csv", index=False)
+        out = DATA_DIR / f"{csv_name}.csv"
+        df.to_csv(out, index=False)
         return
     
     df = pd.read_html(StringIO(html_content))[0]
+    # Ensure data directory exists and save file
     out = DATA_DIR / f"{csv_name}.csv"
     df.to_csv(out, index=False)
     #df.to_csv(f"data/{csv_name}.csv", index=False)
@@ -77,14 +79,14 @@ def process_and_merge_data(year: int):
     """Process and merge all scraped data into a single dataframe for a given year"""
     year = int(year)
     file_map = {
-        "per_game": f"data/per_game_{year}.csv",
-        "per_100": f"data/per_100_poss_{year}.csv",
-        "advanced": f"data/advanced_{year}.csv",
-        "shooting": f"data/shooting_{year}.csv",
+        "per_game": DATA_DIR / f"per_game_{year}.csv",
+        "per_100": DATA_DIR / f"per_100_poss_{year}.csv",
+        "advanced": DATA_DIR / f"advanced_{year}.csv",
+        "shooting": DATA_DIR / f"shooting_{year}.csv",
     }
-    missing = [path for path in file_map.values() if not os.path.exists(path)]
+    missing = [path for path in file_map.values() if not path.exists()]
     if missing:
-        raise FileNotFoundError(f"Missing CSV files for year {year}: {', '.join(missing)}")
+        raise FileNotFoundError(f"Missing CSV files for year {year}: {', '.join(str(p) for p in missing)}")
 
     # Load all CSV files
     df_per_game = pd.read_csv(file_map["per_game"])
