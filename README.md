@@ -1,15 +1,27 @@
 AI Basketball Scout
 ===================
 
-A two-part application that generates NBA scouting reports and visualizes player performance across seasons.
+A comprehensive NBA scouting application that generates detailed player reports and visualizes performance across multiple seasons. **Now deployed on Render for easy access!**
 
 Features
 --------
-- Search and select players; fetch headshots
-- Generate structured scouting reports with sections: Overview, Strengths, Weaknesses, Playstyle and Tendencies, Scheme Fit
-- Combined performance chart (PPG, APG, RPG, SPG, BPG) with readable dark theme
-- FastAPI backend serving player data and report generation endpoints
-- Streamlit frontend for an interactive UI
+- Search and select players across 6 NBA seasons (2020-2025)
+- Generate AI-powered scouting reports with detailed analysis
+- Comprehensive performance visualization with 50+ statistical metrics
+- FastAPI backend with Redis caching for optimal performance
+- Streamlit frontend for an intuitive, interactive user experience
+
+Data Coverage
+-------------
+- **6 Complete Seasons**: 2019-2020 through 2024-2025
+- **50+ Statistical Metrics** including:
+  - Traditional stats (PPG, APG, RPG, SPG, BPG)
+  - Advanced metrics (PER, TS%, Win Shares, VORP)
+  - Shooting analytics (3P%, Mid-range %, Corner 3s)
+  - Efficiency ratings (Offensive/Defensive Rating)
+  - Possession-based stats (Per 100 possessions)
+- **Data Source**: Basketball Reference - the most comprehensive basketball statistics database
+- **Real-time Updates**: Automated scraping ensures data freshness
 
 Tech Stack
 ---------
@@ -31,57 +43,30 @@ Project Structure
 - `frontend/streamlit_app.py`: Streamlit UI
 - `data/`: CSVs sourced from Basketball Reference (2020–2025)
 
-Prerequisites
--------------
-- Python 3.10+
-- Virtual environment recommended
-
-Environment Variables
----------------------
-Create a `.env` in both project root and `frontend/` if needed.
-
-Required variables:
-- Backend
-  - `GEMINI_API_KEY` (if using Gemini for report generation)
-  - `DATABASE_URL` (e.g., `postgresql+psycopg2://user:pass@localhost:5432/ai_basketball_scout`)
-  - `REDIS_URL` (e.g., `redis://localhost:6379/0`)
-- Frontend
-  - `BACKEND_URL` (e.g., `http://localhost:8000`)
-
-Install
--------
-From the project root:
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Windows: venv\\Scripts\\activate
-pip install -r requirements.txt  # If present
-```
-
-Run
----
-Backend (FastAPI):
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Frontend (Streamlit):
-```bash
-cd frontend
-streamlit run streamlit_app.py
-```
+Live Demo
+---------
+**Access the application directly on Render:**
+- No local installation required
+- Always up-to-date with the latest data
+- Optimized for production use
 
 Key Endpoints (Backend)
 -----------------------
 - `GET /players/names` — List of players with `player_name` and `birth_year`
 - `GET /player/{player_name}?birth_year=YYYY` — Season stats for a player
 - `GET /player-headshot/{player_name}/{birth_year}` — Player headshot URL
-- `GET /generate_report/{player_name}/{birth_year}` — Scouting report text
+- `GET /generate_report/{player_name}/{birth_year}` — AI-generated scouting report
+- `GET /rate-limit/status` — Check API rate limit usage
 
-Notes
------
-- Data comes from Basketball Reference (2020–2025) CSVs in `data/`.
-- Ensure `BACKEND_URL` points to the running FastAPI instance before starting Streamlit.
+Data Sources
+------------
+All player statistics are sourced from Basketball Reference, combining:
+- **Per Game Statistics**: Traditional box score metrics
+- **Per 100 Possessions**: Pace-adjusted performance data
+- **Advanced Metrics**: Efficiency and impact measurements
+- **Shooting Analytics**: Distance-based and assisted shot data
+
+This comprehensive dataset enables detailed player analysis across multiple dimensions, providing insights that go beyond basic statistics.
 
 License
 -------
