@@ -53,11 +53,15 @@ Project Structure
 
 Key Endpoints (Backend)
 -----------------------
-- `GET /players/names` — List of players with `player_name` and `birth_year`
-- `GET /player/{player_name}?birth_year=YYYY` — Season stats for a player
-- `GET /player-headshot/{player_name}/{birth_year}` — Player headshot URL
-- `GET /generate_report/{player_name}/{birth_year}` — AI-generated scouting report
-- `GET /rate-limit/status` — Check API rate limit usage
+- `GET /` — Application root and status
+- `GET /health` — Health check endpoint
+- `GET /players` — Get all players from database
+- `POST /players` — Add/update players in database (scrapes and processes data)
+- `GET /players/names` — Get list of unique players with names and birth years
+- `GET /player/{player_name}?birth_year=YYYY` — Get season stats for a specific player
+- `GET /player-headshot/{player_name}/{birth_year}` — Get player headshot URL
+- `GET /generate_report/{player_name}/{birth_year}` — Generate AI-powered scouting report
+- `GET /scrape/players` — Manually trigger data scraping from Basketball Reference
 
 Data Sources
 ------------
