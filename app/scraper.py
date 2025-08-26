@@ -11,8 +11,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-#DATA_DIR = Path(os.getenv("DATA_DIR", "/var/data"))
-#DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATA_DIR = Path(os.getenv("DATA_DIR", "/var/data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def get_bref_stats_v1(url, csv_name): #Legacy code right here, for learning and review purposes
@@ -36,9 +36,9 @@ def get_bref_stats(url, csv_name): #This version accounts for tables hidden insi
         return
     
     df = pd.read_html(StringIO(html_content))[0]
-    #out = DATA_DIR / f"{csv_name}.csv"
-    #df.to_csv(out, index=False)
-    df.to_csv(f"data/{csv_name}.csv", index=False)
+    out = DATA_DIR / f"{csv_name}.csv"
+    df.to_csv(out, index=False)
+    #df.to_csv(f"data/{csv_name}.csv", index=False)
 
 
 async def scrape_all_stats():
