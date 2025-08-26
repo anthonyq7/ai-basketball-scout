@@ -3,6 +3,14 @@ AI Basketball Scout
 
 A comprehensive NBA scouting application that generates detailed player reports and visualizes performance across multiple seasons. **Now deployed on Render for easy access!**
 
+**🌐 [Live Application](https://ai-basketball-scout-1.onrender.com/)**
+
+Live Demo
+---------
+**Access the application directly on Render:**
+- **🌐 Live URL**: [https://ai-basketball-scout-1.onrender.com/](https://ai-basketball-scout-1.onrender.com/)
+- No local installation required
+
 Features
 --------
 - Search and select players across 6 NBA seasons (2020-2025)
@@ -42,13 +50,6 @@ Project Structure
 - `app/`: FastAPI backend (API, models, scraping, Gemini integration)
 - `frontend/streamlit_app.py`: Streamlit UI
 - `data/`: CSVs sourced from Basketball Reference (2020–2025)
-
-Live Demo
----------
-**Access the application directly on Render:**
-- No local installation required
-- Always up-to-date with the latest data
-- Optimized for production use
 
 Key Endpoints (Backend)
 -----------------------
