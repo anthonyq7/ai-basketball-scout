@@ -3,8 +3,6 @@ AI Basketball Scout
 
 A comprehensive NBA scouting application that generates detailed player reports and visualizes performance across multiple seasons. **Now deployed on Render for easy access!**
 
-**[Live Application](https://ai-basketball-scout-1.onrender.com/)**
-
 Live Demo
 ---------
 **Access the application directly on Render:**
