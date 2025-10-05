@@ -136,7 +136,7 @@ async def post_players():
         return {"message": f"Successfully added {added_count} players to database"}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error adding players: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to add players")
     finally:
         db.close()
 
@@ -148,7 +148,7 @@ async def get_players():
         players = db.query(database.Player).all()
         return players
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting players: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get players")
     finally:
         db.close()
 
@@ -159,7 +159,7 @@ async def get_player(player_name: str, birth_year: int):
         player = db.query(database.Player).filter(database.Player.player_name == player_name, database.Player.birth_year == birth_year).all()
         return player #FASTAPI + PYNDANTIC converts this SQLALchemy model to JSON
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Failed to get player")
     finally:
         db.close()
     """
@@ -190,7 +190,7 @@ async def scrape_players():
         await scraper.scrape_all_stats()
         return {"message": "data successfully scraped"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to scrape players")
 
 # Helpers to structure JSON as {year: {stats}}
 def players_to_year_map(players: List[Player]) -> dict:
@@ -229,7 +229,7 @@ async def get_player_report(request: Request, player_name: str, birth_year: int)
         redis_client.setex(cache_key, 3600, report)
         return PlainTextResponse(content=report)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to generate report")
     finally:
         db.close()
 
@@ -255,7 +255,7 @@ async def get_player_names_all():
         #unique_names = [player.get("player_name") for player in unique_players] >>> This gets only names
         return unique_players
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get player names")
     finally:
         db.close()
 
@@ -269,7 +269,7 @@ async def get_player_headshot(player_name: str, birth_year: int):
         headshot_url = query.headshot_url
         return {"headshot_url": headshot_url} #returns a JSON object with URL
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get headshot")
     finally:
         db.close()
 
