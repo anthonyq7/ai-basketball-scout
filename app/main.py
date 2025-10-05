@@ -1,10 +1,10 @@
 from fastapi.responses import PlainTextResponse
 from models import Player
 import scraper
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request
 import database
 import gemini
-from typing import List, Dict, Any
+from typing import List
 from dotenv import load_dotenv
 import os
 import redis
@@ -211,7 +211,7 @@ def rows_to_year_map(rows) -> dict:
 
 @app.get("/generate_report/{player_name}/{birth_year}")
 @limiter.limit("10/minute")
-async def get_player_report(player_name: str, birth_year: int):
+async def get_player_report(request: Request, player_name: str, birth_year: int):
     cache_key=f"player:{player_name}:birth-year:{birth_year}"
     cached_data = redis_client.get(cache_key)
 
