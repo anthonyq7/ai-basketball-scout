@@ -1,20 +1,28 @@
 from fastapi.responses import PlainTextResponse
-import pandas as pd
 from models import Player
 import scraper
 from fastapi import FastAPI, HTTPException, status
 import database
 import gemini
-from typing import List
+from typing import List, Dict, Any
 from dotenv import load_dotenv
 import os
 import redis
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 load_dotenv()
 
 app = FastAPI()
+limiter = Limiter(
+    key_func=get_remote_address,
+    storage_uri=os.getenv("REDIS_URL")
+    )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.on_event("startup")
 async def startup_event():
@@ -28,16 +36,12 @@ app.add_middleware(
         os.getenv("FRONTEND_URL", "http://localhost:8501"),  
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"], 
+    allow_methods=["GET", "POST"], 
     allow_headers=[
         "Accept",                    
-        "Content-Type",             
-        "Authorization",             
-        "X-Requested-With",          
-        "X-CSRF-Token",             
-        "Cache-Control",             
+        "Content-Type"                      
     ],
-    max_age=3600  
+    max_age=600  
 )
 
 
@@ -206,6 +210,7 @@ def rows_to_year_map(rows) -> dict:
     return players_to_year_map(pyd)
 
 @app.get("/generate_report/{player_name}/{birth_year}")
+@limiter.limit("10/minute")
 async def get_player_report(player_name: str, birth_year: int):
     cache_key=f"player:{player_name}:birth-year:{birth_year}"
     cached_data = redis_client.get(cache_key)
