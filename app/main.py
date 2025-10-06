@@ -1,7 +1,7 @@
 from fastapi.responses import PlainTextResponse
 from models import Player
 import scraper
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 import database
 import gemini
 from typing import List
@@ -13,6 +13,8 @@ from pathlib import Path
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+import json
+import asyncio
 
 load_dotenv()
 
@@ -273,4 +275,80 @@ async def get_player_headshot(player_name: str, birth_year: int):
     finally:
         db.close()
 
+@app.websocket("/ws/generate_report/{player_name}/{birth_year}")
+async def websocket_generate_report(websocket: WebSocket, player_name: str, birth_year: int):
+    await websocket.accept()
+    
+    try:
+        cache_key = f"player:{player_name}:birth-year:{birth_year}"
+        cached_data = redis_client.get(cache_key)
+        
+        if cached_data:
+            #Send cached data as a single message
+            cached_report = cached_data.decode('utf-8')
+            await websocket.send_text(json.dumps({
+                "type": "complete",
+                "content": cached_report,
+                "cached": True
+            }))
+            return
+        
+        db = database.SessionLocal()
+        try:
+            rows = db.query(database.Player).filter(
+                database.Player.player_name == player_name, 
+                database.Player.birth_year == birth_year
+            ).all()
+            
+            if not rows:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "content": "Player not found"
+                }))
+                return
+            
+            year_map = rows_to_year_map(rows)
+            player_data = {"player_name": player_name, "seasons": year_map}
+            
+        finally:
+            db.close()
+        
+        #Send initial message
+        await websocket.send_text(json.dumps({
+            "type": "start",
+            "content": f"Generating report for {player_name}"
+        }))
+        
+        # Stream the report token by token
+        full_report = ""
+        async for token in gemini.generate_report_stream(player_data):
+            if token:
+                full_report += token
+                await websocket.send_text(json.dumps({
+                    "type": "token",
+                    "content": token
+                }))
+                # Small delay to make streaming visible
+                await asyncio.sleep(0.05)
+        
+        # Cache the complete report
+        redis_client.setex(cache_key, 3600, full_report)
+        
+        # Send completion message
+        await websocket.send_text(json.dumps({
+            "type": "complete",
+            "content": "Report generation completed.",
+            "cached": False
+        }))
+        
+    except WebSocketDisconnect:
+        print(f"WebSocket disconnected for {player_name}")
+    except Exception as e:
+        try:
+            await websocket.send_text(json.dumps({
+                "type": "error",
+                "content": "Error generating report"
+            }))
+        except:
+            pass  #Connection might be closed
 
