@@ -331,10 +331,10 @@ async def websocket_generate_report(websocket: WebSocket, player_name: str, birt
                 # Small delay to make streaming visible
                 await asyncio.sleep(0.05)
         
-        # Cache the complete report
+        #Cache the complete report
         redis_client.setex(cache_key, 3600, full_report)
         
-        # Send completion message
+        #Send completion message
         await websocket.send_text(json.dumps({
             "type": "complete",
             "content": "Report generation completed.",
