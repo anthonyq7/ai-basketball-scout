@@ -291,6 +291,7 @@ async def websocket_generate_report(websocket: WebSocket, player_name: str, birt
                 "content": cached_report,
                 "cached": True
             }))
+            await websocket.close()
             return
         
         db = database.SessionLocal()
@@ -340,6 +341,7 @@ async def websocket_generate_report(websocket: WebSocket, player_name: str, birt
             "content": "Report generation completed.",
             "cached": False
         }))
+        await websocket.close()
         
     except WebSocketDisconnect:
         print(f"WebSocket disconnected for {player_name}")
